@@ -12,6 +12,7 @@ Tested with Debian Bullseye
 Python3
 
 **To use the plugin:**
+
 1- Create a new repository (Private is recomended) on Github.  Include a Readme.md file.  Take note of the name of the repository (including case) as well as the branch, which will usually be main.
 
 2- Create a personal access token token.  A **classic** token with "repo" authorization is sufficient.  Instructions for creating a token can be found here:
