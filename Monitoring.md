@@ -1,0 +1,13 @@
+
+**Monitoring Status / Troubleshooting**
+The following command will allow status / errors to be traced during execution and create a log file.
+
+`sudo SYSTEMD_LESS=RXMK /usr/bin/journalctl -f | grep --line-buffered duetBackup | tee backup.log`
+
+**Note:** There may be an issue with the PyGithub python module installing correcly.  This seemes to track to an older version of the OpenSSL libraries.
+The following fixed the issue for me:
+```
+sudo rm -rf /usr/lib/python3/dist-packages/OpenSSL
+sudo pip3 install pyOpenSSL
+sudo pip3 install pyOpenSSL --upgrade
+```

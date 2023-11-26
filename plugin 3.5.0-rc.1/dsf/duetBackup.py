@@ -45,7 +45,7 @@ def init():
     parser.add_argument('-repo', type=str, nargs=1, default=[""], help='Github Repo')
     parser.add_argument('-branch', type=str, nargs=1, default=["main"], help='Github branch') 
     parser.add_argument('-dir', type=str, nargs='+', action='append', help='list of dirs to backup')
-    parser.add_argument('-days', type=int, nargs=1, default=[7], help='Days between Backup Default is 7')
+    parser.add_argument('-days', type=int, nargs=1, default=[0], help='Days between Backup Default is 7')
     parser.add_argument('-hours', type=int, nargs=1, default=[0], help='Hours (added to days) Default is 0')
 
     # Option to read from configuration file
