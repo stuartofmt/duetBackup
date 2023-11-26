@@ -1,6 +1,6 @@
 ## README
 
-This plugin provides periodic (configurable) backup of duet3d SSB files.  Backups are made to a Github repository, thereby ensuring the ability to roll back to earlier file versions.
+This plugin provides periodic or instant backups of duet3d SBC files.  Backups are made to a Github repository, thereby ensuring the ability to roll back to earlier file versions.
 
 **Prerequisites:**
 SBC

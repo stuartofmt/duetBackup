@@ -26,17 +26,16 @@ The meaning of the settings is:
 **Notes on duetBackup.config**
 The default top level directory is /opt/dsf for most purposes this will be sufficient and does not need to be included in the config file.  It can be over-ridden with the `-topDir` option.
 
-For each directory (under /opt/dsf) that you want to backup use **one** `-dir` setting.  Subdirectories will also be backed up.
+You need to have at least one `-dir` setting. For each directory (under /opt/dsf) that you want to backup use a `-dir` setting.  Subdirectories below each `-dir` will also be backed up.
 
 `-days` and `-hours` are integers.  duetBackup will repeat backups every n hours where n = days*24+hours. If you specify `-days 0` and `-hour 0`, a single backup will be performed and duetBackup will terminate.
 
-For example - the following example will performa backup, every 30 hrs, of the system dir and the macros dir :
+For example - the following example will perform a backup, of the `main` branch in the `ender5Backup` repository, every 30 hrs, of the system dir and the macros dir :
 
 ```
 -userName memyselfI
 -userToken gbx_EDEFmLyZDDqgUIQxyz123BqW6x9jabcGCMXl
 -rep ender5Backup
--branch main
 -dir sd/sys
 -dir sd/macros
 -days 1
