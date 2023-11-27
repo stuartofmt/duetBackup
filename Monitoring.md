@@ -1,6 +1,7 @@
 
 **Monitoring Status / Troubleshooting**
 The following command will allow status / errors to be traced during execution and create a log file.
+If troubleshooting, set `-verbose` in the config file.
 
 `sudo SYSTEMD_LESS=RXMK /usr/bin/journalctl -f | grep --line-buffered duetBackup | tee backup.log`
 

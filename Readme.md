@@ -1,4 +1,4 @@
-## README
+# README
 
 This plugin provides periodic or instant backups of duet3d SBC files.  Backups are made to a Github repository, thereby ensuring the ability to roll back to earlier file versions.
 
@@ -24,4 +24,12 @@ https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/m
 
 **Versions**
 
-V1.0 - Initial release
+***V1.0***
+- Initial release
+
+
+***V1.1***
+- Added messages, sent to DWC
+- Displays time to next backup using local time (previously GMT)
+- Added `-duetPassword` to support for printers that use a password
+- Added `-verbose` to enable more detailed log messages.

@@ -8,6 +8,8 @@ The configuration file supports the following settings:
 -dir [mandatory - at least one entry required]
 -days [optional - default is 0]
 -hours [optional - default is 0]
+-duetPassword [optional - default is none]
+-verbose [optional - default is false]
 ```
 
 The meaning of the settings is:
@@ -21,6 +23,8 @@ The meaning of the settings is:
 -dir <subdir>
 -days <days between backups>
 -hours <hours added to days>
+-duetPassword<the password for the printer, if used>
+-verbose<produces more detailed logging>
 ```
 
 **Notes on duetBackup.config**
