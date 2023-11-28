@@ -165,11 +165,13 @@ def init():
 def login(user, token, repo):
     global backupTime
     while True:
+        g = None
+        repository = None
         try:
             print(f"""Logging into Github as {user}""")
             g = Github(user, token)
-            repo = g.get_user().get_repo(repo)
-            last_commit_str = repo.get_commits()[0].last_modified
+            repository = g.get_user().get_repo(repo)
+            last_commit_str = repository.get_commits()[0].last_modified
         except Exception as e:
             msg = f"""Could not log into repository {repo}"""
             sendDuetGcode('M291 S1 T5 P"' + msg + '"')
@@ -192,7 +194,7 @@ def login(user, token, repo):
             msg = "Starting backup"
             sendDuetGcode('M291 S1 T5 P"' + msg + '"')
             print(msg)
-            return repo
+            return repository
         else:
             local_backup_date = datetime_from_utc_to_local(next_backup_date)
             local_backup_str = local_backup_date.strftime('%d %b %Y %H:%M:%S')
@@ -204,21 +206,22 @@ def login(user, token, repo):
             print(f"""Sleeping for {s} seconds""")
             time.sleep(s)
 
-def list_files_in_repo(repo):
+def list_files_in_repo(repository):
+    # repositoty is repository object
     global all_files    
     all_files = []
-    print(f"""Getting files in {repo}""")
+    print(f"""Getting files in {repository}""")
     try:
-        contents = repo.get_contents("")
+        contents = repository.get_contents("")
         while contents:
             file_content = contents.pop(0)
             if file_content.type == "dir":
-                contents.extend(repo.get_contents(file_content.path))
+                contents.extend(repository.get_contents(file_content.path))
             else:
                 file = file_content
                 all_files.append(str(file).replace('ContentFile(path="','').replace('")',''))
     except Exception as e:
-        msg = f"""Problem getting files from {repo}"""
+        msg = f"""Problem getting files from {repository}"""
         sendDuetGcode('M291 S1 T5 P"' + msg + '"')
         print(msg)
         if verbose: print(str(e))  
