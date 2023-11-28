@@ -20,7 +20,7 @@ https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/m
 
 3- Create(using DWC) a file `System/duetBackup/duetBackup.config` details are in the file Config Notes.
 
-4- Install the plugin usinhg the zip file from the DSF / DWC version folder.
+4- Install the plugin using the zip file from the DSF / DWC version folder.
 
 **Versions**
 
