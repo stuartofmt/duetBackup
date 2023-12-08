@@ -1,4 +1,5 @@
 The configuration file supports the following settings:
+
 ```
 -topDir [optional - defaults to /opt/dsf]
 -userName [mandatory]
@@ -9,7 +10,8 @@ The configuration file supports the following settings:
 -days [optional - default is 0]
 -hours [optional - default is 0]
 -duetPassword [optional - default is none]
--verbose [optional - default is false]
+-verbose [optional - default is False]
+-noDelete [optional - default is False]
 ```
 
 The meaning of the settings is:
@@ -19,12 +21,13 @@ The meaning of the settings is:
 -userName <your Github user name>
 -userToken <your github token>
 -rep <your repository name>
--branch <the main branch in your repository - usually main>
+-main <the main branch in your repository - usually main>
 -dir <subdir>
 -days <days between backups>
 -hours <hours added to days>
 -duetPassword<the password for the printer, if used>
 -verbose<produces more detailed logging>
+-noDelete <do not delete files at top level of branch>
 ```
 
 **Notes on duetBackup.config**
@@ -34,7 +37,7 @@ You need to have at least one `-dir` setting. For each directory (under /opt/dsf
 
 `-days` and `-hours` are integers.  duetBackup will repeat backups every n hours where n = days*24+hours. If you specify `-days 0` and `-hour 0`, a single backup will be performed and duetBackup will terminate.
 
-For example - the following example will perform a backup, of the `main` branch in the `ender5Backup` repository, every 30 hrs, of the system dir and the macros dir :
+For example - the following example will perform a backup, of the `main` branch in the `ender5Backup` repository, for the system dir and the macros dir.  This will occur every 30 hrs.  Any files deleted will be removed from `branch`:
 
 ```
 -userName memyselfI

@@ -10,6 +10,7 @@ import time
 import requests
 import json
 import signal
+import hashlib
 
 global backupVersion
 backupVersion = "1.1"
@@ -17,6 +18,9 @@ backupVersion = "1.1"
 # Version 1.1
 # Added message for DWC monitoring
 # Added display of local date for next backup
+# Version 1.2
+# Added -nodelete option
+# Added file comparison check
 
 def sendDuetGcode(command):
     # Used to send a command to Duet
@@ -32,7 +36,6 @@ def urlCall(url, post):
     timelimit = 5  # timout for call to return
     loop = 0
     limit = 2  # seems good enough to catch transients
-    loginRetry = 0
     while loop < limit:
         error  = ''
         code = 9999
@@ -42,31 +45,17 @@ def urlCall(url, post):
                 r = requests.get(url, timeout=timelimit, headers=urlHeaders)
             else:
                 r = requests.post(url, timeout=timelimit, data=post, headers=urlHeaders)
+            if r.status_code == 200: return r
         except requests.ConnectionError as e:
-            print('Cannot connect to the printer\n')
+            print('Cannot connect to the printer - likely a network error\n')
             if verbose: print(str(e))
             error = 'Connection Error'
             printerConnected = False
         except requests.exceptions.Timeout as e:
-            print('The printer connection timed out\n')
+            print('The printer connection timed out - was the printer turned on?\n')
             if verbose: print(str(e))
             error = 'Timed Out'
-            printerConnected = False
-
-        if error == '': # call returned something
-            code = r.status_code
-            if code == 200:
-                return r
-            elif code == 401: # Dropped session
-                loginRetry += 1
-                code = loginPrinter() # Try to get a new key
-                if code == 200:
-                    loop = 0
-                    continue  # go back and try the last call
-                else: # cannot login
-                    if loginRetry > 1: # Failed to get new key
-                        break
-            # any other http error codes are to be handled by caller            
+            printerConnected = False          
         time.sleep(1)
         loop += 1      # Try again
  
@@ -139,31 +128,33 @@ def init():
     parser.add_argument('-userName', type=str, nargs=1, default=[""], help='Github User Name')
     parser.add_argument('-userToken', type=str, nargs=1, default=[""], help='Github Token')
     parser.add_argument('-repo', type=str, nargs=1, default=[""], help='Github Repo')
-    parser.add_argument('-branch', type=str, nargs=1, default=["main"], help='Github branch') 
+    parser.add_argument('-branch', type=str, nargs=1, default=["main"], help='Github current branch')
     parser.add_argument('-dir', type=str, nargs='+', action='append', help='list of dirs to backup')
     parser.add_argument('-days', type=int, nargs=1, default=[0], help='Days between Backup Default is 7')
     parser.add_argument('-hours', type=int, nargs=1, default=[0], help='Hours (added to days) Default is 0')
     parser.add_argument('-duetPassword', type=str, nargs=1, default=[""], help='Duet3d Printer Password')
     parser.add_argument('-verbose', action='store_true', help='Detailed output')
+    parser.add_argument('-noDelete', action='store_true', help='Delete files')
     # Option to read from configuration file
     parser.add_argument('-file', type=argparse.FileType('r'), help='file of options', action=LoadFromFilex)
 
     args = vars(parser.parse_args())  # Save as a dict
 
-    global topDir, userName, userToken, dirs, userRepo, branch, backupInt, duetPassword, verbose
+    global topDir, userName, userToken, dirs, userRepo, main, backupInt, duetPassword, verbose, noDelete
 
     topDir = os.path.normpath(args['topDir'][0])
     userName = args['userName'][0]
     userToken = args['userToken'][0]
     userRepo = args['repo'][0]
-    branch = args['branch'][0]
+    main = args['branch'][0]
     dirs =  args['dir']
     backupInt = int(args['days'][0])*24 + int(args['hours'][0])
     duetPassword = args['duetPassword'][0]
     verbose = args['verbose']
+    noDelete = args['noDelete']
 
 def login(user, token, repo):
-    global backupTime
+    global backupTime, last_backup_date
     while True:
         g = None
         repository = None
@@ -180,14 +171,15 @@ def login(user, token, repo):
             sys.exit(1)
         #Check to see if a backup is needed
         # convert to date object
+        # Work in GMT
         lc_date = re.findall("\d\d \w\w\w \d\d\d\d \d\d:\d\d:\d\d", last_commit_str)
         last_commit_date = datetime.strptime(lc_date[0], '%d %b %Y %H:%M:%S')
-        # Work in GMT
         current_time_date = datetime.utcnow()
         current_time_str = current_time_date.strftime('%d %b %Y %H:%M:%S')
-        backupTime = current_time_date.strftime('%d %b %Y')
+        backupTime = current_time_date.strftime('%d %b %Y %H:%M')
+        if last_backup_date == 0: last_backup_date = last_commit_date
         # When to backup ?
-        next_backup_date = last_commit_date + timedelta(hours=backupInt)
+        next_backup_date = last_backup_date + timedelta(hours=backupInt)
         if verbose: print(f"""Last commit was {last_commit_str}""")
         if verbose: print(f"""Current time is {current_time_str} GMT""")
         if current_time_date > next_backup_date:
@@ -203,47 +195,68 @@ def login(user, token, repo):
             print(msg)
             d = (next_backup_date - current_time_date)
             s = d.seconds
-            print(f"""Sleeping for {s} seconds""")
+            if verbose: print(f"""Sleeping for {s} seconds""")
             time.sleep(s)
 
-def list_files_in_repo(repository):
-    # repositoty is repository object
-    global all_files    
-    all_files = []
-    print(f"""Getting files in {repository}""")
+def list_files_in_repo(repository,branch):
+    # repository is repository object
+    branch_files = []
+    branches = repository.get_branches()
+    existing_branches = []
+    for br in branches:
+        existing_branches.append(br.name)
+
+    if branch not in existing_branches: 
+        msg = f"""Branch {branch} does not exist in repository {repository}"""
+        sendDuetGcode('M291 S1 T5 P"' + msg + '"')
+        print(msg)    
+        return branch_files
+    
+    print(f"""Getting files in {repository} from branch {branch}""")
     try:
-        contents = repository.get_contents("")
+        contents = repository.get_contents("", ref=branch)
         while contents:
             file_content = contents.pop(0)
             if file_content.type == "dir":
                 contents.extend(repository.get_contents(file_content.path))
             else:
                 file = file_content
-                all_files.append(str(file).replace('ContentFile(path="','').replace('")',''))
+                branch_files.append(str(file).replace('ContentFile(path="','').replace('")',''))
     except Exception as e:
         msg = f"""Problem getting files from {repository}"""
         sendDuetGcode('M291 S1 T5 P"' + msg + '"')
         print(msg)
-        if verbose: print(str(e))  
+        if verbose: print(str(e))
+    return branch_files
 
-def backupFile(topdir, repository, branch, basedir, file): 
-    global backupTime   
-    fileurl = os.path.join(basedir, file)
-    if basedir == topdir:   # file is at the top level
+def backupFilesToBranch(repo, branch, branch_list):
+    # uses global source_files[] 
+    try:
+        for item in source_files:
+            backupFile(repo, branch, branch_list, item)
+    except Exception as e:
+        msg = f"""Error trying to backup {item}"""
+        sendDuetGcode('M291 S1 T5 P"' + msg + '"')
+        print(msg)
+        if verbose: print(str(e))   
+
+def backupFile(repo, branch, branch_list, filepath):
+    global backupTime
+    basedir = os.path.dirname(filepath)
+    file = os.path.basename(filepath)   
+    fileurl = os.path.join(topDir,basedir, file)
+    if basedir == '':   # file is at the top level
         git_file = file
     else:                    # file is in a folder
-        git_file = os.path.join(basedir.replace(topdir,''),file)
+        git_file = filepath
 
-    git_file = git_file.replace('\\','/')  # make sure slashes face the right way
-    if git_file.startswith('/'): git_file = git_file.replace('/','', 1) # get rid of any leading /
-
-
-    if verbose: print(f"""Attempting to backup {git_file}""")
+    file_hash = ''
     try:
-        with open(fileurl, 'r') as file:
-            content = file.read()
+        with open(fileurl, 'rb') as file:
+            filecontent = file.read()
+            file_hash = hash(fileurl,filecontent)
     except Exception as e:
-        mag = f"""Could not get content of file {git_file}"""
+        msg = f"""Could not get content of file {git_file}"""
         sendDuetGcode('M291 S1 T5 P"' + msg + '"')
         print(msg)
         if verbose: print(str(e))
@@ -251,17 +264,57 @@ def backupFile(topdir, repository, branch, basedir, file):
 
     # Upload to github
     try:
-        if git_file in all_files:
-            contents = repository.get_contents(git_file)
-            repository.update_file(contents.path, backupTime, content, contents.sha, branch=branch)
+        if git_file in branch_list:
+            contents = repo.get_contents(git_file, ref=branch)
+            if verbose: print(f"""SHA from Github =  {contents.sha}""")
+            if verbose: print(f"""File Hash = {file_hash}""")
+            if contents.sha != file_hash:  #file has changed
+                print(f"""Updating {git_file}""")
+                repo.update_file(contents.path, backupTime, filecontent, contents.sha, branch=branch)
+            else:
+                print(f"""Skipping {git_file}""")
         else:
-            repository.create_file(git_file, backupTime, content, branch=branch)
+            print(f"""Adding {git_file}""")
+            repo.create_file(git_file, "Original", filecontent, branch=branch)   
     except Exception as e:
-        msg = f"""There was an error trying to backup the file {git_file}"""
+        msg = f"""Error trying to backup the file {git_file}"""
         sendDuetGcode('M291 S1 T5 P"' + msg + '"')
         print(msg)
         if verbose: print(str(e))
 
+def removeDeletedFiles(repo, mainbranch, main_files):
+    # Uses global source_files[]
+    global backupTime
+    print(f"""Delete unnecessary files from branch {mainbranch}""")
+    if verbose: print(source_files)
+    for fileurl in main_files:
+        if verbose: print(fileurl)
+        if fileurl not in source_files:
+            try:
+                contents = repo.get_contents(fileurl, ref=mainbranch)
+                repo.delete_file(contents.path, backupTime , contents.sha, branch=mainbranch)
+                print(f"""Deleted {fileurl}""")
+            except Exception as e:
+                msg = f"""Error trying to delete {contents.path}"""
+                sendDuetGcode('M291 S1 T5 P"' + msg + '"')
+                print(msg)
+                print(str(e))
+
+def hash(f, content):
+    try:
+        githeader = f"""blob {os.path.getsize(f)}\0"""
+        githeader = bytes(githeader, 'utf-8')
+
+        file_hash = hashlib.sha1()
+        file_hash.update(githeader)
+        file_hash.update(content)
+        hash = file_hash.hexdigest()
+    except Exception as e:
+        msg = f"""Could not calculate hash for {f}"""
+        print(str(e))
+        return ''
+    return hash    
+            
 def quit_forcibly(*args):        
      os.kill(os.getpid(), 9)  # Brutal but effective
 
@@ -272,11 +325,12 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, quit_forcibly)
 
 
-    global all_files, backupTime, printerConnected
+    global source_files, backupTime, printerConnected, last_backup_date
 
     init()  #  Get options
-
+    last_backup_date = 0
     while True:
+        main_files = []
         code = loginPrinter() # Returns when next backup is due
         if code == 200:
             printerConnected = True
@@ -287,37 +341,37 @@ if __name__ == "__main__":
             msg = f"""Could not access {userRepo}"""
             sendDuetGcode('M291 S1 T5 P"' + msg + '"')
             print(msg)
-        list_files_in_repo(repository)
+            quit_forcibly()
+
+        main_files = list_files_in_repo(repository, main)
+
         # Backup each dir in turn
+        print(f"""The following dirs will be backed up {dirs}""")
+        source_files = []
         for dir in dirs:
-            msg = f"""Starting backup of {dir[0]}"""
-            sendDuetGcode('M291 S1 T5 P"' + msg + '"')
-            print(msg)
             try:
                 walkdir = os.path.normpath(os.path.join(topDir,str(dir[0])))
-                print(f"""Checking directory = {walkdir}""")
-                commit_list = []
+                print(f"""List files in directory = {walkdir}""")
                 for (dirpath, dirnames, filenames) in os.walk(walkdir):
                     for filename in filenames:
-                        commit = (dirpath,filename) # Add as a tuple
-                        commit_list.append(commit) 
+                        dirpath = dirpath.replace(topDir,'') # get the relative path
+                        commit =os.path.join(dirpath,filename)
+                        commit = commit.replace('\\','/')  # make sure slashes face the right way
+                        if commit.startswith('/'): commit = commit.replace('/','', 1) # get rid of any leading /
+                        source_files.append(commit) 
             except Exception as e:
-                msg = f"""Error getting list of files from {walkdir}"""
+                msg = f"""Error listing files!!"""
                 sendDuetGcode('M291 S1 T5 P"' + msg + '"')
                 print(msg)
                 if verbose: print(str(e))
+                quit_forcibly()
                 
-            try:
-                for item in commit_list:
-                    backupFile(topDir,repository,branch, item[0],item[1])
-            except Exception as e:
-                msg = f"""Error trying to backup {walkdir}"""
-                sendDuetGcode('M291 S1 T5 P"' + msg + '"')
-                print(msg)
-                if verbose: print(str(e))
+        backupFilesToBranch(repository,main, main_files)
+        if not noDelete: removeDeletedFiles(repository,main, main_files)
+        last_backup_date = datetime.utcnow()
 
         if backupInt == 0:
             msg = 'Exiting normally after single backup'
             sendDuetGcode('M291 S1 T5 P"' + msg + '"')
             print(msg)
-            sys.exit(0)
+            quit_forcibly()

@@ -2,7 +2,7 @@
     "id": "duetBackup",
     "name": "duetBackup",
     "author": "Stuartofmt",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "license": "GPL-2.0-or-later",
     "homepage": "https://github.com/stuartofmt",
 	"sbcRequired": true,
@@ -11,6 +11,6 @@
 	"sbcExecutableArguments": "-file /opt/dsf/sd/sys/duetBackup/duetBackup.config",
 	"sbcOutputRedirected": false,
 	"sbcPermissions": ["networkAccess", "readSystem","writeSystem", "fileSystemAccess"],
-	"sbcPythonDependencies": ["argparse", "shlex", "sys","os","re","datetime","pyOpenSSL", "PyGithub","time","requests","json","signal"]
+	"sbcPythonDependencies": ["argparse", "shlex", "sys","os","re","datetime","pyOpenSSL", "PyGithub","time","requests","json","signal", "hashlib"]
  }
  
