@@ -53,3 +53,6 @@ https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/m
 - Added `-noDelete` option
 - Compares files to determine if an update is needed.
 - Added date / time of last change to file (except initial save).
+
+***V1.3***
+- README.md file shows date and time of last backup

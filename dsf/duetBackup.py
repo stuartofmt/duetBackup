@@ -21,6 +21,8 @@ backupVersion = "1.1"
 # Version 1.2
 # Added -nodelete option
 # Added file comparison check
+# Version 1.3
+# Added README.md delete protection and update message.
 
 def sendDuetGcode(command):
     # Used to send a command to Duet
@@ -154,7 +156,7 @@ def init():
     noDelete = args['noDelete']
 
 def login(user, token, repo):
-    global backupTime, last_backup_date
+    global backupTime
     while True:
         g = None
         repository = None
@@ -162,7 +164,7 @@ def login(user, token, repo):
             print(f"""Logging into Github as {user}""")
             g = Github(user, token)
             repository = g.get_user().get_repo(repo)
-            last_commit_str = repository.get_commits()[0].last_modified
+            last_commit_git = repository.get_commits()[0].last_modified
         except Exception as e:
             msg = f"""Could not log into repository {repo}"""
             sendDuetGcode('M291 S1 T5 P"' + msg + '"')
@@ -172,14 +174,13 @@ def login(user, token, repo):
         #Check to see if a backup is needed
         # convert to date object
         # Work in GMT
-        lc_date = re.findall("\d\d \w\w\w \d\d\d\d \d\d:\d\d:\d\d", last_commit_str)
-        last_commit_date = datetime.strptime(lc_date[0], '%d %b %Y %H:%M:%S')
+        last_commit_date = re.findall("\d\d \w\w\w \d\d\d\d \d\d:\d\d:\d\d", last_commit_git)
+        last_commit_str = datetime.strptime(last_commit_date[0], '%d %b %Y %H:%M:%S')
         current_time_date = datetime.utcnow()
-        current_time_str = current_time_date.strftime('%d %b %Y %H:%M:%S')
+        current_time_str = current_time_date.strftime('%d %b %Y %H:%M')
         backupTime = current_time_date.strftime('%d %b %Y %H:%M')
-        if last_backup_date == 0: last_backup_date = last_commit_date
         # When to backup ?
-        next_backup_date = last_backup_date + timedelta(hours=backupInt)
+        next_backup_date = last_commit_str + timedelta(hours=backupInt)
         if verbose: print(f"""Last commit was {last_commit_str}""")
         if verbose: print(f"""Current time is {current_time_str} GMT""")
         if current_time_date > next_backup_date:
@@ -189,9 +190,9 @@ def login(user, token, repo):
             return repository
         else:
             local_backup_date = datetime_from_utc_to_local(next_backup_date)
-            local_backup_str = local_backup_date.strftime('%d %b %Y %H:%M:%S')
+            local_backup_str = local_backup_date.strftime('%d %b %Y %H:%M')
             msg = f"""Next backup will start at {local_backup_str} Local Time"""
-            sendDuetGcode('M291 S1 T0 P"' + msg + '"')
+            sendDuetGcode('M291 S1 T20 P"' + msg + '"')
             print(msg)
             d = (next_backup_date - current_time_date)
             s = d.seconds
@@ -240,7 +241,7 @@ def backupFilesToBranch(repo, branch, branch_list):
         print(msg)
         if verbose: print(str(e))   
 
-def backupFile(repo, branch, branch_list, filepath):
+def backupFile(repo, branch, branch_list, filepath, filecontent= ''):
     global backupTime
     basedir = os.path.dirname(filepath)
     file = os.path.basename(filepath)   
@@ -251,17 +252,18 @@ def backupFile(repo, branch, branch_list, filepath):
         git_file = filepath
 
     file_hash = ''
-    try:
-        with open(fileurl, 'rb') as file:
-            filecontent = file.read()
-            file_hash = hash(fileurl,filecontent)
-    except Exception as e:
-        msg = f"""Could not get content of file {git_file}"""
-        sendDuetGcode('M291 S1 T5 P"' + msg + '"')
-        print(msg)
-        if verbose: print(str(e))
-        return
-
+    if filecontent == '':  # This is the normal case
+        try:
+            with open(fileurl, 'rb') as file:
+                filecontent = file.read()
+                file_hash = hash(fileurl,filecontent)
+        except Exception as e:
+            msg = f"""Could not get content of file {git_file}"""
+            sendDuetGcode('M291 S1 T5 P"' + msg + '"')
+            print(msg)
+            if verbose: print(str(e))
+            return
+        
     # Upload to github
     try:
         if git_file in branch_list:
@@ -325,10 +327,9 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, quit_forcibly)
 
 
-    global source_files, backupTime, printerConnected, last_backup_date
+    global source_files, backupTime, printerConnected
 
     init()  #  Get options
-    last_backup_date = 0
     while True:
         main_files = []
         code = loginPrinter() # Returns when next backup is due
@@ -367,8 +368,18 @@ if __name__ == "__main__":
                 quit_forcibly()
                 
         backupFilesToBranch(repository,main, main_files)
-        if not noDelete: removeDeletedFiles(repository,main, main_files)
+        if not noDelete:
+            source_files.append('README.md') # Dont delete 
+            removeDeletedFiles(repository,main, main_files)
+        
+        # Update README.md
         last_backup_date = datetime.utcnow()
+        utc_backup_str = last_backup_date.strftime('%d %b %Y at %H:%M')
+        local_backup_date = datetime.now()
+        local_backup_str = local_backup_date.strftime('%d %b %Y at %H:%M')
+        filecontent = f"""# Last backup was:\n## {local_backup_str} local time \n## {utc_backup_str} UTC"""
+        backupFile(repository, main, main_files, 'README.md', filecontent)
+
 
         if backupInt == 0:
             msg = 'Exiting normally after single backup'
