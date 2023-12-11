@@ -11,6 +11,7 @@ import requests
 import json
 import signal
 import hashlib
+from fnmatch import fnmatch
 
 global backupVersion
 backupVersion = "1.1"
@@ -22,7 +23,9 @@ backupVersion = "1.1"
 # Added -nodelete option
 # Added file comparison check
 # Version 1.3
-# Added README.md delete protection and update message.
+# Added README.md with last backup information
+# Prevented README from being deleted
+# Added -ignore
 
 def sendDuetGcode(command):
     # Used to send a command to Duet
@@ -132,6 +135,7 @@ def init():
     parser.add_argument('-repo', type=str, nargs=1, default=[""], help='Github Repo')
     parser.add_argument('-branch', type=str, nargs=1, default=["main"], help='Github current branch')
     parser.add_argument('-dir', type=str, nargs='+', action='append', help='list of dirs to backup')
+    parser.add_argument('-ignore', type=str, nargs='+', action='append', help='list of patterns to ignore')
     parser.add_argument('-days', type=int, nargs=1, default=[0], help='Days between Backup Default is 7')
     parser.add_argument('-hours', type=int, nargs=1, default=[0], help='Hours (added to days) Default is 0')
     parser.add_argument('-duetPassword', type=str, nargs=1, default=[""], help='Duet3d Printer Password')
@@ -142,7 +146,7 @@ def init():
 
     args = vars(parser.parse_args())  # Save as a dict
 
-    global topDir, userName, userToken, dirs, userRepo, main, backupInt, duetPassword, verbose, noDelete
+    global topDir, userName, userToken, dirs, gitignore, userRepo, main, backupInt, duetPassword, verbose, noDelete
 
     topDir = os.path.normpath(args['topDir'][0])
     userName = args['userName'][0]
@@ -150,10 +154,15 @@ def init():
     userRepo = args['repo'][0]
     main = args['branch'][0]
     dirs =  args['dir']
+    gitignore =  args['ignore']
     backupInt = int(args['days'][0])*24 + int(args['hours'][0])
     duetPassword = args['duetPassword'][0]
     verbose = args['verbose']
     noDelete = args['noDelete']
+
+    if dirs is None:
+        print('Nothing specified for -dir')
+        quit_forcibly
 
 def login(user, token, repo):
     global backupTime
@@ -274,7 +283,7 @@ def backupFile(repo, branch, branch_list, filepath, filecontent= ''):
                 print(f"""Updating {git_file}""")
                 repo.update_file(contents.path, backupTime, filecontent, contents.sha, branch=branch)
             else:
-                print(f"""Skipping {git_file}""")
+                if verbose: print(f"""Skipping {git_file}""")
         else:
             print(f"""Adding {git_file}""")
             repo.create_file(git_file, "Original", filecontent, branch=branch)   
@@ -346,9 +355,10 @@ if __name__ == "__main__":
 
         main_files = list_files_in_repo(repository, main)
 
-        # Backup each dir in turn
+        # Backup each dirs
         print(f"""The following dirs will be backed up {dirs}""")
         source_files = []
+        # Get a complete list of source files
         for dir in dirs:
             try:
                 walkdir = os.path.normpath(os.path.join(topDir,str(dir[0])))
@@ -359,17 +369,29 @@ if __name__ == "__main__":
                         commit =os.path.join(dirpath,filename)
                         commit = commit.replace('\\','/')  # make sure slashes face the right way
                         if commit.startswith('/'): commit = commit.replace('/','', 1) # get rid of any leading /
-                        source_files.append(commit) 
+                        backupfile = True
+                        for ignore in gitignore:
+                            if verbose: print(f"""Check {commit} against {ignore[0]}""") 
+                            if fnmatch(commit,ignore[0]):
+                                backupfile = False
+
+                        if backupfile:
+                            source_files.append(commit)
+                        else:
+                            print(f"""Ignoring {commit} due to {ignore}""")
+
+   
             except Exception as e:
                 msg = f"""Error listing files!!"""
                 sendDuetGcode('M291 S1 T5 P"' + msg + '"')
                 print(msg)
                 if verbose: print(str(e))
                 quit_forcibly()
-                
+
         backupFilesToBranch(repository,main, main_files)
         if not noDelete:
             source_files.append('README.md') # Dont delete 
+            source_files.append('.gitignore') # Dont delete 
             removeDeletedFiles(repository,main, main_files)
         
         # Update README.md

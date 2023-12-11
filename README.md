@@ -56,3 +56,5 @@ https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/m
 
 ***V1.3***
 - README.md file shows date and time of last backup
+-README.md prevented from being deleted
+- Added `-ignore`. Can specify files that are not to be backed up. This also causes these files to be deleted unless `-noDelete` is set.
