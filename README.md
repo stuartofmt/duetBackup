@@ -18,7 +18,7 @@ There are two modes of operation, depending on whether the archive option is use
 **Prerequisites:**
 SBC
 
-V3.5.0-rc.1
+V3.5 or higher
 
 Tested with Debian Bullseye
 

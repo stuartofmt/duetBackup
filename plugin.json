@@ -6,7 +6,7 @@
     "license": "GPL-2.0-or-later",
     "homepage": "https://github.com/stuartofmt",
 	"sbcRequired": true,
-	"sbcDsfVersion": "3.5.0-rc.1",
+	"sbcDsfVersion": "3.5",
 	"sbcExecutable": "duetBackup.py",
 	"sbcExecutableArguments": "-file /opt/dsf/sd/sys/duetBackup/duetBackup.config",
 	"sbcOutputRedirected": false,
