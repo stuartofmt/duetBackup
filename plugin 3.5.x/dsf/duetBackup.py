@@ -1,4 +1,10 @@
-#!/usr/bin/python3 -u
+#!/usr/bin/python -u
+
+"""
+For use with v3.6 when virtual environments are implemented
+#!/opt/dsf/plugins/duetBackup/venv/bin/python -u
+"""
+
 import argparse
 import shlex
 import sys
