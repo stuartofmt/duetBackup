@@ -2,7 +2,6 @@
 
 """
 For use with v3.6 when virtual environments are implemented
-#!/opt/dsf/plugins/duetBackup/venv/bin/python -u
 """
 
 import argparse
