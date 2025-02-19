@@ -20,7 +20,7 @@ import hashlib
 from fnmatch import fnmatch
 
 global backupVersion
-backupVersion = "1.1"
+backupVersion = "1.3"
 
 # Version 1.1
 # Added message for DWC monitoring
