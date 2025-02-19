@@ -1,8 +1,8 @@
 #!/usr/bin/python -u
 
 """
-For use with v3.6 when virtual environments are implemented
-#!/opt/dsf/plugins/duetBackup/venv/bin/python -u
+For use with v3.5 without virtual environments
+#!/usr/bin/python -u
 """
 
 import argparse
