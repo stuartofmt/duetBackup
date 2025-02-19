@@ -18,11 +18,9 @@ There are two modes of operation, depending on whether the archive option is use
 **Prerequisites:**
 SBC
 
-V3.5 or higher
+V3.x
 
-Tested with Debian Bullseye
-
-Python3
+Tested with Debian Bullseye and Bookwork on V3.5.4 and V3.6
 
 **To use the plugin:**
 
