@@ -2,7 +2,6 @@
 
 """
 For use with v3.5 without virtual environments
-#!/usr/bin/python -u
 """
 
 import argparse
