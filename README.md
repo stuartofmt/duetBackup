@@ -16,24 +16,10 @@ There are two modes of operation, depending on whether the archive option is use
     The behavior is the same as above, except that files which are deleted from the source are NOT  deleted from the main branch.  This makes recovery a little more involved.
 
 **Prerequisites:**
-SBC
-
-V3.x
+Duet3d SBC V3.x
+Python >= 3.8
 
 Tested with Debian Bullseye and Bookwork on V3.5.4 and V3.6
-
-**To use the plugin:**
-
-1- Create a new repository (Private is recomended) on Github.  Include a Readme.md file.  Take note of the name of the repository (including case) as well as the branch, which will usually be main.
-
-2- Create a personal access token token.  A **classic** token with "repo" authorization is sufficient.  Instructions for creating a token can be found here:
-https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
-
-3- Create(using DWC) a file `System/duetBackup/duetBackup.config` details are in the file Config Notes.
-
-4- Install the plugin using the zip file from the DSF / DWC version folder.
-
-5- To create an initial backup, set `-days 0` and `-hours 0`. This will run duetBackup once.  After that, set `-days` and `-hrs` to your prefered backup interval.  Note that if there are no changes to any files, backup does nothing.
 
 **Versions**
 
@@ -56,3 +42,5 @@ https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/m
 - README.md file shows date and time of last backup
 -README.md prevented from being deleted
 - Added `-ignore`. Can specify files that are not to be backed up. This also causes these files to be deleted unless `-noDelete` is set.
+
+Instructions for setup / installation are in the file `Documents/setup.md`

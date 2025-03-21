@@ -1,24 +1,23 @@
 The configuration file supports the following settings:
 
 ```
--topDir [optional - defaults to /opt/dsf]
--userName [mandatory]
+-userName [Mandatory]
 -userToken [Mandatory]
--rep [mandatory]
+-rep [Mandatory]
 -branch [optional - defaults to main]
--dir [mandatory - at least one entry required]
+-dir [Mandatory - at least one entry required]
 -days [optional - default is 0]
 -hours [optional - default is 0]
--duetPassword [optional - default is none]
+-duetPassword [optional - default is mone]
 -verbose [optional - default is False]
 -noDelete [optional - default is False]
 -ignore [optional - zero or more entries]
-```
+-topDir [optional - defaults to /opt/dsf]
+-logfile[optional - defaults to '/opt/dsf/sd/sys/duetBackup/duetBackup.log']
 
 The meaning of the settings is:
 
 ```
--topDir <the top level dir that is the source for backups>
 -userName <your Github user name>
 -userToken <your github token>
 -rep <your repository name>
@@ -30,10 +29,10 @@ The meaning of the settings is:
 -verbose<produces more detailed logging>
 -noDelete <do not delete files>
 -ignore  <do not backup files that match the pattern>
+-topDir <the top level dir that is the source for backups>
+-logfile <the fully qualified path and name of the logfile>
 ```
 
-**Notes on duetBackup.config**
-The default top level directory is /opt/dsf for most purposes this will be sufficient and does not need to be included in the config file.  It can be over-ridden with the `-topDir` option.
 
 You need to have at least one `-dir` setting. For each directory (under /opt/dsf) that you want to backup use a `-dir` setting.  Subdirectories below each `-dir` will also be backed up.
 
@@ -53,7 +52,7 @@ Example 1 - the following example will perform a backup, of the `main` branch in
 
 ```
 -userName memyselfI
--userToken gbx_EDEFmLyZDDqgUIQxyz123BqW6x9jabcGCMXl
+-userToken gbx_EDEFmLyZDDqgABCxyz123BqW6x9jabcGCMXl
 -rep ender5Backup
 -dir sd/sys
 -dir sd/macros
@@ -61,16 +60,22 @@ Example 1 - the following example will perform a backup, of the `main` branch in
 -hours 6
 ```
 
-Example 2 - Same as example 1 but any files ending in `.log` will not be backed up. Any files in the subdirectories below `/sys` will not be backed up.  Also these files will be deleted (because `-noDelete` is not set):
+Example 2 - Same as example 1 but any files ending in `.log` will not be backed up. Also these files will be deleted from the repository (if there from a prior backup) -  because `-noDelete` is not set:
 
 ```
 -userName memyselfI
--userToken gbx_EDEFmLyZDDqgUIQxyz123BqW6x9jabcGCMXl
+-userToken gcm_EDEFmLyZDDqgABCxyz123BqW6x9jabcGCMXl
 -rep ender5Backup
 -dir sd/sys
 -dir sd/macros
 -days 1
 -hours 6
 -ignore *.log
--ignore */sys/*/*
 ```
+
+**Notes on duetBackup.config**
+The default top level directory is /opt/dsf for most purposes this will be correct and does not need to be included in the config file.  It can be over-ridden with the `-topDir` option.
+
+The default logfile (duetBackup.log) will be placed in /opt/dsf/sd/sys/duetBackup i.e it is accessible from the DWC UI through system --> duetBackup --> duetBackup.log.  It can be over-ridden by specifying a fully qualified path and logfile name with the `-logfile` option.
+
+A new log file will be created on each backup interval (this is to keep the logfile small).

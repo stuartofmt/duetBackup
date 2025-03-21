@@ -1,0 +1,9 @@
+-userName <my githubuser name>
+-userToken <my github token>
+-rep <my github repoitory>
+-dir sd/sys
+-dir sd/macros
+-days 1
+-hours 6
+-ignore *.log
+-verbose
