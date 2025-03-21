@@ -49,7 +49,7 @@ pythonMinor = 8
 # Version 1.4
 - Added logging and some defensive code
 - Strings  changed to f-strings
-- updated deprecated calls to datetime - requires version 3.1.2 or later
+- updated deprecated calls to datetime
 - added file change info to README.md
 - Restructured code for easier maintenance
 - M291 error messages change to no timeout

@@ -43,4 +43,11 @@ Tested with Debian Bullseye and Bookwork on V3.5.4 and V3.6
 -README.md prevented from being deleted
 - Added `-ignore`. Can specify files that are not to be backed up. This also causes these files to be deleted unless `-noDelete` is set.
 
+***V1.4***
+- Added logging to logfile
+- updated deprecated python calls
+- added file change summary info to README.md
+''' 
+
+### Setup
 Instructions for setup / installation are in the file `Documents/setup.md`
