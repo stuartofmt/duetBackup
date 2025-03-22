@@ -6,14 +6,14 @@ This plugin provides periodic or instant backups of duet3d SBC files.  Backups a
 There are two modes of operation, depending on whether the archive option is used.
 
 ***Files deleted from the source are deleted from the main branch (default)***
-    The designated directories are compared to the files in the `main` branch. Files are either Added (new files), Updated (if changed), or Skipped (if not changed).  Files that have been deleted from the designated directories are removed from the `main` branch.  In this way, the `main` branch is a snapshot of the designated directories.
-    
-    If you need to recover to the latest version - a simple download of the top level `main` branch is all that is needed.
+The designated directories are compared to the files in the `main` branch. Files are either Added (new files), Updated (if changed), or Skipped (if not changed).  Files that have been deleted from the designated directories are removed from the `main` branch.  In this way, the `main` branch is a snapshot of the designated directories.
 
-    Github history still provides access to previously deleted files.
+If you need to recover to the latest version - a simple download of the top level `main` branch is all that is needed.
+
+Github history still provides access to previously deleted files.
 
 ***Files are not deleted from the main branch***
-    The behavior is the same as above, except that files which are deleted from the source are NOT  deleted from the main branch.  This makes recovery a little more involved.
+The behavior is the same as above, except that files which are deleted from the source are NOT  deleted from the main branch.  This makes recovery a little more involved.
 
 **Prerequisites:**
 Duet3d SBC V3.x
