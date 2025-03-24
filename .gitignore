@@ -1,2 +1,5 @@
+*.conf
 *.config
+*.log
 plugin.zip
+**/venv/
