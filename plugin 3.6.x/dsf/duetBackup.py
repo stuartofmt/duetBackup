@@ -26,7 +26,7 @@ from pathlib import Path
 
 global progName, progVersion
 progName = 'duetBackup'
-progVersion = "1.4"
+progVersion = "1.5"
 # Min python version
 pythonMajor = 3
 pythonMinor = 8
@@ -53,6 +53,13 @@ pythonMinor = 8
 - added file change info to README.md
 - Restructured code for easier maintenance
 - M291 error messages change to no timeout
+
+# Version 1.5
+- changed dependency versions
+- fixed non-critical error in sig handling
+- test for mandatory args in argparse
+- fixed error in -ignore not specified
+- fixed error if multiple -ignore
 ''' 
 
 def setuplogging():  #Called at start
@@ -182,17 +189,19 @@ class LoadFromFilex (argparse.Action):
                 return
 def init():
     # get config
+    #try:
     parser = argparse.ArgumentParser(
             description=f'''Duet3d Backup - V{progVersion}, allow_abbrev=False''')
     # Environment
     parser.add_argument('-topDir', type=str, nargs=1, default=["/opt/dsf"],
                         help='Top level dir')
-    parser.add_argument('-userName', type=str, nargs=1, default=[""], help='Github User Name')
-    parser.add_argument('-userToken', type=str, nargs=1, default=[""], help='Github Token')
-    parser.add_argument('-repo', type=str, nargs=1, default=[""], help='Github Repo')
+
+    parser.add_argument('-userName', type=str, nargs=1, default = [''], help='Github User Name')
+    parser.add_argument('-userToken', type=str, nargs=1, default = [''],  help='Github Token')
+    parser.add_argument('-rep', type=str, nargs=1, default = [''], help='Github Repo')
     parser.add_argument('-branch', type=str, nargs=1, default=["main"], help='Github current branch')
-    parser.add_argument('-dir', type=str, nargs='+', action='append', help='list of dirs to backup')
-    parser.add_argument('-ignore', type=str, nargs='+', action='append', help='list of patterns to ignore')
+    parser.add_argument('-dir', type=str, nargs='*', action='append', default = [], help='list of dirs to backup')
+    parser.add_argument('-ignore', type=str, nargs='*', action='append', default = [], help='list of patterns to ignore')
     parser.add_argument('-days', type=int, nargs=1, default=[0], help='Days between Backup Default is 7')
     parser.add_argument('-hours', type=int, nargs=1, default=[0], help='Hours (added to days) Default is 0')
     parser.add_argument('-duetPassword', type=str, nargs=1, default=[""], help='Duet3d Printer Password')
@@ -203,15 +212,15 @@ def init():
     # Option to read from configuration file
     parser.add_argument('-file', type=argparse.FileType('r'), help='file of options', action=LoadFromFilex)
 
-    args = vars(parser.parse_args())  # Save as a dict
-
     global topDir, userName, userToken, dirs, gitignore, userRepo, main, backupInt, duetPassword, verbose, noDelete
     global logfilename
+
+    args = vars(parser.parse_args())  # Save as a dict
 
     topDir = os.path.normpath(args['topDir'][0])
     userName = args['userName'][0]
     userToken = args['userToken'][0]
-    userRepo = args['repo'][0]
+    userRepo = args['rep'][0]
     main = args['branch'][0]
     dirs =  args['dir']
     gitignore =  args['ignore']
@@ -221,9 +230,24 @@ def init():
     noDelete = args['noDelete']
     logfilename = args['logfile'][0]
 
-    if dirs is None:
-        logger.critical('Nothing specified for -dir')
-        force_quit
+def check_for_mandatory():
+    mandatory_items = True
+
+    if userName == '':
+        logger.critical('-userName is required')
+        mandatory_items = False
+    if userToken == '':
+        logger.critical('-userToken is required')
+        mandatory_items = False
+    if userRepo == '':
+        logger.critical('-rep is required')
+        mandatory_items = False
+    if dirs == []:
+        logger.critical('-dir is required')
+        mandatory_items = False
+    if not mandatory_items:
+        force_quit(1)
+
 
 def loginGithub(user, token, repo):
     g = None
@@ -263,7 +287,7 @@ def wait_until_backup_needed(last_commit_git, backupInt):
         next_backup_str = next_backup_dt.strftime('%d %b %Y %H:%M')
         logger.debug(f'''Next Backup is due at {next_backup_str}''')
 
-        if current_time_dt > next_backup_dt:
+        if current_time_dt >= next_backup_dt:
             if backupInt == 0:
                 msg = "Performing single backup"
             else:
@@ -330,15 +354,18 @@ def get_list_of_source_files():
                     commit = commit.replace('\\','/')  # make sure slashes face the right way
                     if commit.startswith('/'): commit = commit.replace('/','', 1) # get rid of any leading /
                     backupfile = True
+                    ignore_match = ''
                     for ignore in gitignore:
                         logger.debug(f'''Check {commit} against {ignore[0]}''') 
-                        if fnmatch(commit,ignore[0]):
+                        if fnmatch(commit,ignore[0]): # filename matches ignore condition
                             backupfile = False
+                            ignore_match = ignore[0]
+                            break
 
                     if backupfile:
                         sourceFiles.append(commit)
                     else:
-                        logger.info(f'''Ignoring {commit} due to {ignore}''')
+                        logger.debug(f'''Ignoring {commit} due to -ignore {ignore_match}''')
 
 
         except Exception as e:
@@ -499,16 +526,21 @@ def checkPythonVersion():
         logger.critical(f'''Minimum version {pythonMajor}.{pythonMinor} is required. Exiting''' )
         force_quit(1)
 
+def sig_handler(signum, frame):
+    signame = signal.Signals(signum).name
+    logger.info(f'Shutting down.  Recieved signal {signame} ({signum})')
+    #  No need for anything else as signal will cause program to exit
+
 def force_quit(code):
     # Note:  Some libraries will send warnings to stdout / std error
     # These will display if run from console standalone
     logger.info('Shutdown Requested')
-    sys.exit(int(code))
+    os._exit(code)
 
-def main():
+def Main():
     # shutdown with SIGINT (kill -2 <pid> or SIGTERM)
-    signal.signal(signal.SIGINT, force_quit) # Ctrl + C
-    signal.signal(signal.SIGTERM, force_quit)
+    signal.signal(signal.SIGINT, sig_handler)
+    signal.signal(signal.SIGTERM, sig_handler)
 
     global printerConnected, TimeZoneOffset, TimeZoneOffsetHrs, logger
     printerConnected = False
@@ -519,6 +551,8 @@ def main():
     setupLogfile()
     logger.info('Initial logfile started')
     logger.info(f'''{progName} -- {progVersion}''')
+
+    check_for_mandatory()
     
     checkPythonVersion()
 
@@ -571,7 +605,9 @@ def main():
         main_Files = list_files_in_repo(repository, main)
 
         # Backup each source directory
-        logger.info(f'''The following dirs will be backed up {dirs}''')
+        for dir in dirs:
+            logger.info(f'''Back up requested by -dir {dir[0]}''')
+
         source_Files = get_list_of_source_files()
 
         added_Files, updated_Files = backupFilesToBranch(repository,main, main_Files, source_Files,backupTime)
@@ -589,17 +625,17 @@ def main():
             logger.info(msg)
             force_quit(0)
 
-
 ###########################
 # Program  begins here
 ###########################
 
 if __name__ == "__main__":  # Do not run anything below if the file is imported by another program
     try:
-        main()
-    except SystemExit as e:
-        if e.code == 9999:  # Emergency Shutdown - just kill everything
-            logger.critical(f'''Forcing Termination SystemExit was {e.code}''')
+        Main()
+    except SystemExit as e: # just in case something bubbles up ...
+        msg = f'''Terminated with exit code {e.code}'''
+        if logging:
             logging.shutdown()  #Flush and close the logs
-            time.sleep(5) # Give it a chance to finish
-            os._exit(1)
+            time.sleep(1) # Give it a chance to finish
+        else:
+            print(msg)

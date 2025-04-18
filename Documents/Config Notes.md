@@ -5,7 +5,7 @@ The configuration file supports the following settings:
 -userToken [Mandatory]
 -rep [Mandatory]
 -branch [optional - defaults to main]
--dir [Mandatory - at least one entry required]
+-dir [Mandatory one or more entries]
 -days [optional - default is 0]
 -hours [optional - default is 0]
 -duetPassword [optional - default is mone]
@@ -34,9 +34,12 @@ The meaning of the settings is:
 ```
 
 
-You need to have at least one `-dir` setting. For each directory (under /opt/dsf) that you want to backup use a `-dir` setting.  Subdirectories below each `-dir` will also be backed up.
+If any of the Mandatory options are not set, the program will not run.
+Each `-dir` each entry specifies a directory (under /opt/dsf) that you want to backup. Subdirectories below each `-dir` will also be backed up.
 
 `-days` and `-hours` are integers.  duetBackup will repeat backups every n hours where n = days*24+hours. If you specify `-days 0` and `-hour 0`, a single backup will be performed and duetBackup will terminate.
+
+each `-ignore` specifies a file, filetype or file pattern that will be excluded from the backup
 
 `-ignore` accepts the following patterns:
 
@@ -48,7 +51,7 @@ You need to have at least one `-dir` setting. For each directory (under /opt/dsf
 
 [!seq] matches any character not in seq
 
-Example 1 - the following example will perform a backup, of the `main` branch in the `ender5Backup` repository, for the system dir and the macros dir.  This will occur every 30 hrs.  Any files deleted will be removed from `branch`:
+Example 1 - the following example will perform a backup, of the `main` branch in the `ender5Backup` repository, for the system dir and the macros dir.  This will occur every 30 hrs.  Any files deleted will be removed from github (but of course you can look back through the github version history):
 
 ```
 -userName memyselfI
@@ -60,7 +63,7 @@ Example 1 - the following example will perform a backup, of the `main` branch in
 -hours 6
 ```
 
-Example 2 - Same as example 1 but any files ending in `.log` will not be backed up. Also these files will be deleted from the repository (if there from a prior backup) -  because `-noDelete` is not set:
+Example 2 - Same as example 1 but any files ending in `.log` and ending in  `.conf?` (e.g. test.conf1, test2.conf2) will not be backed up. Also these files will be deleted from the repository (if there from a prior backup) -  because `-noDelete` is not set:
 
 ```
 -userName memyselfI
@@ -71,6 +74,7 @@ Example 2 - Same as example 1 but any files ending in `.log` will not be backed 
 -days 1
 -hours 6
 -ignore *.log
+-ignore *.conf?
 ```
 
 **Notes on duetBackup.config**

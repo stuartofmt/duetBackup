@@ -21,6 +21,8 @@ Python >= 3.8
 
 Tested with Debian Bullseye and Bookwork on V3.5.4 and V3.6
 
+***Note:  If running on Bookworm you must be using DSF V3.6 or higher.***
+
 **Versions**
 
 ***V1.0***
@@ -47,6 +49,14 @@ Tested with Debian Bullseye and Bookwork on V3.5.4 and V3.6
 - Added logging to logfile
 - updated deprecated python calls
 - added file change summary info to README.md
+''' 
+
+***V1.5***
+- updated python packages to allow newer versions
+- fixed a non-critical error in shutdown
+- enforced mandatory options
+- fixed error when `-ignore` was not provided
+- fixed issue handling multiple `-ignore`
 ''' 
 
 ### Setup
