@@ -57,7 +57,24 @@ Tested with Debian Bullseye and Bookwork on V3.5.4 and V3.6
 - enforced mandatory options
 - fixed error when `-ignore` was not provided
 - fixed issue handling multiple `-ignore`
-''' 
+
+***V1.6***
+- extended meaning of -noDelete
+- made printer connection handling more efficint
+- improved on DWC messages
+- added aliases for Jobs and System folders
+- tolerates incorrect case in the default top level sd folder names
+- does not require duet board to be powered up, only SBC
+
+***V2.0***
+- expanded noDelete to allow selection of directories
+- -ignore files will be deleted if syncing file
+- changed API so both Standalaone and SBC compatible
+- made printer connection handling more efficient
+- improved on DWC messages
+- added aliases for Jobs and System folders
+- tolerates incorrect case in the default sd folder names
+- removed .gitignore file (redundant)
 
 ### Setup
 Instructions for setup / installation are in the file `Documents/setup.md`

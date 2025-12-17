@@ -1,0 +1,11 @@
+[Unit]
+Description=duetBackup Service
+After=multi-user.target
+[Service]
+WorkingDirectory=/home/pi/duetBackup
+User=pi
+Type=idle
+ExecStart=/home/pi/duetBackup/venv/bin/python ./duetBackup.py -file ./duetBackup.config
+Restart=always
+[Install]
+WantedBy=multi-user.target

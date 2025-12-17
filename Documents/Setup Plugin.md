@@ -1,4 +1,4 @@
-## To setup / install the plugin
+## To setup / install as a plugin
 
 1- Create a new repository (Private is recomended) on Github.  Include a Readme.md file in the base of the repository.  Take note of the name of the repository (including case) as well as the branch, which will usually be 'main'.
 
